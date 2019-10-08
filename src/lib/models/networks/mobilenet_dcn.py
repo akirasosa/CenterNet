@@ -14,8 +14,9 @@ import math
 
 import torch
 import torch.nn as nn
-
 # from .DCNv2.dcn_v2 import DCN
+# from modules import DeformConv
+from modules import DeformConvPack
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -243,12 +244,12 @@ class PoseMobileNet(nn.Module):
                 self._get_deconv_cfg(num_kernels[i], i)
 
             planes = num_filters[i]
-            # fc = DCN(self.inplanes, planes, 
-            # kernel_size=(3,3), stride=1,
-            # padding=1, dilation=1, deformable_groups=1)
-            fc = nn.Conv2d(self.inplanes, planes,
-                           kernel_size=3, stride=1,
-                           padding=1, dilation=1, bias=False)
+            fc = DeformConvPack(self.inplanes, planes,
+                                kernel_size=(3, 3), stride=1,
+                                padding=1, dilation=1, deformable_groups=1)
+            # fc = nn.Conv2d(self.inplanes, planes,
+            #                kernel_size=3, stride=1,
+            #                padding=1, dilation=1, bias=False)
             # fill_fc_weights(fc)
             up = nn.ConvTranspose2d(
                 in_channels=planes,
@@ -315,5 +316,5 @@ def get_pose_net(num_layers, heads, head_conv=256):
 
 if __name__ == '__main__':
     heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
-    net = get_pose_net(heads)
-    out = net(torch.randn((1, 3, 224, 224)))
+    net = get_pose_net(0, heads).to('cuda')
+    out = net(torch.randn((1, 3, 224, 224)).to('cuda'))
