@@ -54,5 +54,10 @@ def demo(opt):
 
 
 if __name__ == '__main__':
-    opt = opts().init()
-    # demo(opt)
+    # opt = opts().init()
+    import pickle
+    # with open('../data/opt.pkl', 'wb') as f:
+    #     pickle.dump(opt, f)
+    with open('/home/akirasosa/.ghq/github.com/akirasosa/CenterNet/data/opt.pkl', 'rb') as f:
+        opt = pickle.load(f)
+    demo(opt)

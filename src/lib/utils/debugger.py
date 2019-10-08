@@ -5,6 +5,7 @@ from __future__ import print_function
 import numpy as np
 import cv2
 from .ddd_utils import compute_box_3d, project_to_image, draw_box_3d
+import time
 
 
 class Debugger(object):
@@ -245,7 +246,8 @@ class Debugger(object):
             prefix = idx
             np.savetxt(path + '/id.txt', np.ones(1) * (idx + 1), fmt='%d')
         for i, v in self.imgs.items():
-            cv2.imwrite(path + '/{}{}.png'.format(prefix, i), v)
+            # cv2.imwrite(path + '/{}{}.png'.format(prefix, i), v)
+            cv2.imwrite(f'/home/akirasosa/tmp/{prefix}{i}-{time.time()}.png', v)
 
     def remove_side(self, img_id, img):
         if not (img_id in self.imgs):
