@@ -7,6 +7,8 @@ import os
 import torch
 import torch.utils.data
 
+# noinspection PyUnresolvedReferences
+import _init_paths
 from datasets.dataset_factory import get_dataset
 from logger import Logger
 from models.model import create_model, load_model, save_model
