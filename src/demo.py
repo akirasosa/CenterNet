@@ -58,6 +58,9 @@ if __name__ == '__main__':
     import pickle
     # with open('../data/opt.pkl', 'wb') as f:
     #     pickle.dump(opt, f)
-    with open('/home/akirasosa/.ghq/github.com/akirasosa/CenterNet/data/opt.pkl', 'rb') as f:
+    with open('/home/akirasosa/.ghq/github.com/akirasosa/CenterNet/data/coco/opt.pkl', 'rb') as f:
         opt = pickle.load(f)
+    # opt.arch = 'mobile'
+    # opt.load_model = '/home/akirasosa/.ghq/github.com/akirasosa/CenterNet/exp/multi_pose/mobile/model_best.pth'
+    # opt.load_model = '/home/akirasosa/.ghq/github.com/akirasosa/CenterNet/exp/multi_pose/res18/model_best.pth'
     demo(opt)
