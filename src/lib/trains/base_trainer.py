@@ -5,6 +5,7 @@ from __future__ import print_function
 import time
 
 import torch
+from apex import amp
 from progress.bar import Bar
 
 from models.data_parallel import DataParallel
@@ -26,6 +27,7 @@ class ModleWithLoss(torch.nn.Module):
 class BaseTrainer(object):
     def __init__(
             self, opt, model, optimizer=None):
+        model, optimizer = amp.initialize(model, optimizer)
         self.opt = opt
         self.optimizer = optimizer
         self.loss_stats, self.loss = self._get_losses(opt)
@@ -73,7 +75,9 @@ class BaseTrainer(object):
             loss = loss.mean()
             if phase == 'train':
                 self.optimizer.zero_grad()
-                loss.backward()
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+                # loss.backward()
                 self.optimizer.step()
             batch_time.update(time.time() - end)
             end = time.time()
