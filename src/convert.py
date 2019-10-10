@@ -5,7 +5,7 @@ from torch2trt import torch2trt
 
 # noinspection PyUnresolvedReferences
 import _init_paths
-from models.networks import efficientnet_centernet
+from models.networks import efficientnet_centernet, msra_resnet
 
 # %%
 heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
