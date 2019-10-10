@@ -1,12 +1,12 @@
 from pathlib import Path
 from time import time
+
 import numpy as np
+import torch
+from torch2trt import TRTModule
 
 # noinspection PyUnresolvedReferences
 import _init_paths
-import torch
-# from torch2trt import TRTModule
-
 from models.networks import msra_resnet, mobilenet_dcn
 
 
@@ -61,13 +61,13 @@ def bench(model, n_repeat=10):
 
 
 if __name__ == '__main__':
-    # model = load_res18_trt()
-    # results = bench(model, 20)
-    # print(results[2:].mean())
+    model = load_res18_trt()
+    results = bench(model, 20)
+    print(results[2:].mean())
 
-    # model = load_mobilev3_trt()
-    # results = bench(model, 20)
-    # print(results[2:].mean())
+    model = load_mobilev3_trt()
+    results = bench(model, 20)
+    print(results[2:].mean())
 
     model = load_res18_pth()
     results = bench(model, 20)
