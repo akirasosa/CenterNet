@@ -6,6 +6,7 @@ import torch
 
 from .networks.msra_resnet import get_pose_net
 from .networks.mobilenet_dcn import get_pose_net as get_pose_mobile_net
+from .networks.efficientnet_centernet import get_pose_net as get_pose_efficient_net
 
 # from .networks.dlav0 import get_pose_net as get_dlav0
 # from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
@@ -15,6 +16,7 @@ from .networks.mobilenet_dcn import get_pose_net as get_pose_mobile_net
 _model_factory = {
     'res': get_pose_net,  # default Resnet with deconv
     'mobile': get_pose_mobile_net,
+    'efficient': get_pose_efficient_net,
     # 'dlav0': get_dlav0, # default DLAup
     # 'dla': get_dla_dcn,
     # 'resdcn': get_pose_net_dcn,

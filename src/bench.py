@@ -7,7 +7,7 @@ from torch2trt import TRTModule
 
 # noinspection PyUnresolvedReferences
 import _init_paths
-from models.networks import msra_resnet, mobilenet_dcn
+from models.networks import msra_resnet, mobilenet_dcn, efficientnet_centernet
 
 
 def load_res18_trt():
@@ -21,6 +21,15 @@ def load_res18_trt():
 
 def load_mobilev3_trt():
     dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt.pth'
+
+    model = TRTModule()
+    model.load_state_dict(torch.load(dict_path))
+    model = model.eval().cuda()
+    return model
+
+
+def load_efficient_trt():
+    dict_path = Path.home() / 'tmp' / 'efficient_no-head_trt.pth'
 
     model = TRTModule()
     model.load_state_dict(torch.load(dict_path))
@@ -48,6 +57,16 @@ def load_mobilev3_pth():
     return model
 
 
+def load_efficient_pth():
+    dict_path = Path.home() / 'tmp' / 'efficient_no-head_torch.pth'
+    heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
+
+    model = efficientnet_centernet.get_pose_net(0, heads, 64)
+    model.load_state_dict(torch.load(dict_path))
+    model = model.eval().cuda()
+    return model
+
+
 def bench(model, n_repeat=10):
     inputs = torch.ones((1, 3, 512, 512)).cuda()
     results = []
@@ -65,7 +84,11 @@ if __name__ == '__main__':
     results = bench(model, 20)
     print(results[2:].mean())
 
-    model = load_mobilev3_trt()
+    # model = load_mobilev3_trt()
+    # results = bench(model, 20)
+    # print(results[2:].mean())
+
+    model = load_efficient_trt()
     results = bench(model, 20)
     print(results[2:].mean())
 
@@ -73,6 +96,10 @@ if __name__ == '__main__':
     results = bench(model, 20)
     print(results[2:].mean())
 
-    model = load_mobilev3_pth()
+    # model = load_mobilev3_pth()
+    # results = bench(model, 20)
+    # print(results[2:].mean())
+
+    model = load_efficient_pth()
     results = bench(model, 20)
     print(results[2:].mean())

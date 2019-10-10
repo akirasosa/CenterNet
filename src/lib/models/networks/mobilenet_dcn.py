@@ -278,6 +278,7 @@ class PoseMobileNet(nn.Module):
         # print(x.shape)
 
         x = self.deconv_layers(x)
+        print(x.shape)
         return x
         # ret = {}
         # for head in self.heads:
@@ -297,7 +298,7 @@ class PoseMobileNet(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
 
-def get_pose_net(num_layers, heads, head_conv=256):
+def get_pose_net(num_layers, heads, head_conv=64):
     cfgs = [
         # k, t, c, SE, NL, s
         [3, 16, 16, 1, 0, 2],
@@ -321,4 +322,4 @@ def get_pose_net(num_layers, heads, head_conv=256):
 if __name__ == '__main__':
     heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
     net = get_pose_net(0, heads).to('cuda')
-    out = net(torch.randn((2, 3, 224, 224)).to('cuda'))
+    out = net(torch.randn((2, 3, 512, 512)).to('cuda'))
