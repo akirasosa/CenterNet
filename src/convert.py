@@ -3,6 +3,8 @@ from pathlib import Path
 import torch
 from torch2trt import torch2trt
 
+# noinspection PyUnresolvedReferences
+import _init_paths
 from models.networks import mobilenet_dcn, msra_resnet
 
 # %%
