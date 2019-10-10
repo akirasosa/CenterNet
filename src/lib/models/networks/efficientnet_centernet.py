@@ -150,7 +150,7 @@ class PoseEfficientNet(nn.Module):
         x = self.extract_features(x)
 
         x = self.deconv_layers(x)
-        return x
+        # return x
         ret = {}
         for head in self.heads:
             ret[head] = self.__getattr__(head)(x)
