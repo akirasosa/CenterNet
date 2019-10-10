@@ -17,6 +17,7 @@ import torch.nn as nn
 # from .DCNv2.dcn_v2 import DCN
 # from modules import DeformConv
 # from modules import DeformConvPack
+from torch.utils import model_zoo
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -285,7 +286,9 @@ class PoseMobileNet(nn.Module):
 
     def init_weights(self):
         if 1:
-            pretrained_state_dict = torch.load('/home/akirasosa/data/pretrained/mobilenetv3-small-c7eb32fe.pth')
+            # pretrained_state_dict = torch.load('/home/akirasosa/data/pretrained/mobilenetv3-small-c7eb32fe.pth')
+            pretrained_state_dict = model_zoo.load_url(
+                'https://storage.googleapis.com/sosa-pub/mobilenetv3-small-c7eb32fe.pth')
             self.load_state_dict(pretrained_state_dict, strict=False)
             print('=> init deconv weights from normal distribution')
             for name, m in self.deconv_layers.named_modules():
