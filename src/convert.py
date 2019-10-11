@@ -29,7 +29,7 @@ x = torch.ones((1, 3, 512, 512)).cuda()
 net_trt = torch2trt(net, [x], max_workspace_size=1 << 25)
 
 # %%
-# torch.save(net.state_dict(), Path.home() / 'tmp' / 'res18_no-head_torch.pth')
+torch.save(net.state_dict(), Path.home() / 'tmp' / 'res18_no-head_torch.pth')
 torch.save(net_trt.state_dict(), Path.home() / 'tmp' / 'res18_no-head_trt.pth')
 
 # %%

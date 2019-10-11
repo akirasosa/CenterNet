@@ -93,9 +93,9 @@ if __name__ == '__main__':
     results = bench(model, 20)
     print(results[2:].mean())
 
-    # model = load_res18_pth()
-    # results = bench(model, 20)
-    # print(results[2:].mean())
+    model = load_res18_pth()
+    results = bench(model, 20)
+    print(results[2:].mean())
 
     # model = load_mobilev3_pth()
     # results = bench(model, 20)
