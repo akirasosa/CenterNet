@@ -88,9 +88,9 @@ def bench(model, n_repeat=10):
 
 
 if __name__ == '__main__':
-    model = load_res18_trt(is_half=True)
-    results = bench(model, 40)
-    print('res18_trt_half', results[2:].mean())
+    # model = load_res18_trt(is_half=True)
+    # results = bench(model, 40)
+    # print('res18_trt_half', results[2:].mean())
 
     model = load_mobilev3_trt(is_half=True)
     results = bench(model, 40)
