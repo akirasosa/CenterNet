@@ -10,8 +10,11 @@ import _init_paths
 from models.networks import msra_resnet, mobilenet_dcn, efficientnet_centernet
 
 
-def load_res18_trt():
-    dict_path = Path.home() / 'tmp' / 'res18_no-head_trt.pth'
+def load_res18_trt(is_half=False):
+    if is_half:
+        dict_path = Path.home() / 'tmp' / 'res18_no-head_trt_half.pth'
+    else:
+        dict_path = Path.home() / 'tmp' / 'res18_no-head_trt.pth'
 
     model = TRTModule()
     model.load_state_dict(torch.load(dict_path))
@@ -19,8 +22,11 @@ def load_res18_trt():
     return model
 
 
-def load_mobilev3_trt():
-    dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt.pth'
+def load_mobilev3_trt(is_half=False):
+    if is_half:
+        dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt_half.pth'
+    else:
+        dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt.pth'
 
     model = TRTModule()
     model.load_state_dict(torch.load(dict_path))
@@ -82,6 +88,14 @@ def bench(model, n_repeat=10):
 
 
 if __name__ == '__main__':
+    model = load_res18_trt(is_half=True)
+    results = bench(model, 40)
+    print('res18_trt_half', results[2:].mean())
+
+    model = load_mobilev3_trt(is_half=True)
+    results = bench(model, 40)
+    print('mobilev3_trt_half', results[2:].mean())
+
     model = load_res18_trt()
     results = bench(model, 40)
     print('res18_trt', results[2:].mean())

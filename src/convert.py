@@ -20,6 +20,12 @@ net_trt = torch2trt(net, [x], max_workspace_size=1 << 25)
 torch.save(net.state_dict(), Path.home() / 'tmp' / 'mobilenet_dcn_no-head_torch.pth')
 torch.save(net_trt.state_dict(), Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt.pth')
 
+net = net.half()
+x = x.half()
+net_trt_half = torch2trt(net, [x], max_workspace_size=1 << 25, fp16_mode=True)
+
+torch.save(net_trt_half.state_dict(), Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt_half.pth')
+
 # %%
 net = msra_resnet.get_pose_net(18, heads, head_conv=64).eval().cuda()
 # net = load_model(net, Path.home() / 'data' / 'model_best.pth')
@@ -30,6 +36,12 @@ net_trt = torch2trt(net, [x], max_workspace_size=1 << 25)
 # %%
 torch.save(net.state_dict(), Path.home() / 'tmp' / 'res18_no-head_torch.pth')
 torch.save(net_trt.state_dict(), Path.home() / 'tmp' / 'res18_no-head_trt.pth')
+
+net = net.half()
+x = x.half()
+net_trt_half = torch2trt(net, [x], max_workspace_size=1 << 25, fp16_mode=True)
+
+torch.save(net_trt_half.state_dict(), Path.home() / 'tmp' / 'res18_no-head_trt_half.pth')
 
 # %%
 net = efficientnet_centernet.get_pose_net(0, heads, head_conv=64)
@@ -43,11 +55,11 @@ torch.save(net.state_dict(), Path.home() / 'tmp' / 'efficient_no-head_torch.pth'
 # torch.save(net_trt.state_dict(), Path.home() / 'tmp' / 'efficient_no-head_trt.pth')
 
 # %%
-out_tr = net_trt(torch.ones((2, 3, 512, 512)).cuda())
-for o in out_tr:
-    print(o.shape)
+# out_tr = net_trt(torch.ones((2, 3, 512, 512)).cuda())
+# for o in out_tr:
+#     print(o.shape)
 
-# %%
-out_pth = net(torch.ones((2, 3, 512, 512)).cuda())
-for o in out_pth:
-    print(o.shape)
+# # %%
+# out_pth = net(torch.ones((2, 3, 512, 512)).cuda())
+# for o in out_pth:
+#     print(o.shape)
