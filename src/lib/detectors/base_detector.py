@@ -21,11 +21,11 @@ class BaseDetector(object):
         # self.model = create_model(opt.arch, opt.heads, opt.head_conv)
         # self.model = load_model(self.model, opt.load_model)
         # self.model = self.model.to(opt.device)
+        # self.model.eval()
 
         model = TRTModule()
-        self.model = model.load_state_dict(torch.load(opt.load_model))
-
-        self.model.eval()
+        model.load_state_dict(torch.load(opt.load_model))
+        self.model = model.eval().cuda()
 
         self.mean = np.array(opt.mean, dtype=np.float32).reshape(1, 1, 3)
         self.std = np.array(opt.std, dtype=np.float32).reshape(1, 1, 3)
