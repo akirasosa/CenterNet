@@ -23,6 +23,7 @@ if False:
 
 # %%
 net = msra_resnet.get_pose_net(18, heads, head_conv=64).eval().cuda()
+net = load_model(net, Path.home() / 'data' / 'model_best.pth')
 x = torch.ones((1, 3, 512, 512)).cuda()
 net_trt = torch2trt(net, [x], max_workspace_size=1 << 25)
 

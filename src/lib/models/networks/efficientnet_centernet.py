@@ -150,15 +150,16 @@ class PoseEfficientNet(nn.Module):
         x = self.extract_features(x)
 
         x = self.deconv_layers(x)
-        # return x
+        return x
         # for head in self.heads:
-        #     print(head, self.__getattr__(head)(x).shape)
+        #     # print(head, self.__getattr__(head)(x).shape)
+        #     return self.__getattr__(head)(x)
 
         # TensorRT does not support dict output, so output list here.
-        return [
-            self.__getattr__(head)(x)
-            for head in self.heads
-        ]
+        # return torch.cat([
+        #     self.__getattr__(head)(x)
+        #     for head in self.heads
+        # ], dim=1)
 
     def init_weights(self, num_layers, pretrained=True):
         if pretrained:
@@ -211,8 +212,8 @@ def get_pose_net(num_layers, heads, head_conv):
 if __name__ == '__main__':
     heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
     net = get_pose_net(18, heads, 64)
-    out = net(torch.randn((1, 3, 512, 512)))
-    print(out)
+    out = net(torch.randn((2, 3, 512, 512)))
+    print(out.shape)
 
 # %%
 # print(out[0].keys())

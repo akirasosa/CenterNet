@@ -26,10 +26,6 @@ class MultiPoseDetector(BaseDetector):
             # output = self.model(images)[-1]
 
             output_tmp = self.model(images)
-            output_tmp = [
-                o.squeeze(dim=1)
-                for o in output_tmp
-            ]
             output = {
                 'hm': output_tmp[0],
                 'wh': output_tmp[1],
