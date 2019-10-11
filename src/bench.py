@@ -75,6 +75,7 @@ def bench(model, n_repeat=10):
         for n in range(n_repeat):
             start = time()
             model(inputs)
+            torch.cuda.synchronize()
             results.append(time() - start)
 
     return np.array(results)
@@ -82,25 +83,26 @@ def bench(model, n_repeat=10):
 
 if __name__ == '__main__':
     model = load_res18_trt()
-    results = bench(model, 20)
-    print(results[2:].mean())
+    results = bench(model, 40)
+    print('res18_trt', results[2:].mean())
 
     model = load_mobilev3_trt()
-    results = bench(model, 20)
-    print(results[2:].mean())
+    results = bench(model, 40)
+    print('mobilev3_trt', results[2:].mean())
 
-    model = load_efficient_trt()
-    results = bench(model, 20)
-    print(results[2:].mean())
+    # model = load_efficient_trt()
+    # results = bench(model, 20)
+    # print(results[2:].mean())
+    print('efficient_trt', '---')
 
     model = load_res18_pth()
-    results = bench(model, 20)
-    print(results[2:].mean())
+    results = bench(model, 40)
+    print('res18_pth', results[2:].mean())
 
     model = load_mobilev3_pth()
-    results = bench(model, 20)
-    print(results[2:].mean())
+    results = bench(model, 40)
+    print('mobilev3_pth', results[2:].mean())
 
     model = load_efficient_pth()
     results = bench(model, 20)
-    print(results[2:].mean())
+    print('efficient_pth', results[2:].mean())

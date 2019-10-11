@@ -148,18 +148,11 @@ class PoseEfficientNet(nn.Module):
 
     def forward(self, x):
         x = self.extract_features(x)
-
         x = self.deconv_layers(x)
-        return x
-        # for head in self.heads:
-        #     # print(head, self.__getattr__(head)(x).shape)
-        #     return self.__getattr__(head)(x)
-
-        # TensorRT does not support dict output, so output list here.
-        # return torch.cat([
-        #     self.__getattr__(head)(x)
-        #     for head in self.heads
-        # ], dim=1)
+        return tuple([
+            self.__getattr__(head)(x)
+            for head in self.heads
+        ])
 
     def init_weights(self, num_layers, pretrained=True):
         if pretrained:
