@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import time
 
 import numpy as np
@@ -27,7 +23,18 @@ class MultiPoseDetector(BaseDetector):
     def process(self, images, return_time=False):
         with torch.no_grad():
             torch.cuda.synchronize()
-            output = self.model(images)[-1]
+            # output = self.model(images)[-1]
+
+            output_tmp = self.model(images)
+            output = {
+                'hm': output_tmp[0],
+                'wh': output_tmp[1],
+                'hps': output_tmp[2],
+                'reg': output_tmp[3],
+                'hm_hp': output_tmp[4],
+                'hp_offset': output_tmp[5],
+            }
+
             output['hm'] = output['hm'].sigmoid_()
             if self.opt.hm_hp and not self.opt.mse_loss:
                 output['hm_hp'] = output['hm_hp'].sigmoid_()
