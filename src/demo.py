@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 import cv2
 
+# noinspection PyUnresolvedReferences
+import _init_paths
 from detectors.detector_factory import detector_factory
 from opts import opts
 
@@ -54,9 +52,6 @@ def demo(opt):
 
 
 if __name__ == '__main__':
-    # noinspection PyUnresolvedReferences
-    import _init_paths
-
     opt = opts().init()
     # import pickle
     # with open('../data/opt.pkl', 'wb') as f:
