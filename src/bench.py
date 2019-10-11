@@ -33,7 +33,7 @@ def load_efficient_trt():
 
     model = TRTModule()
     model.load_state_dict(torch.load(dict_path))
-    model = model.eval().cuda()
+    # model = model.eval().cuda()
     return model
 
 
@@ -71,18 +71,19 @@ def bench(model, n_repeat=10):
     inputs = torch.ones((1, 3, 512, 512)).cuda()
     results = []
 
-    for n in range(n_repeat):
-        start = time()
-        model(inputs)
-        results.append(time() - start)
+    with torch.no_grad():
+        for n in range(n_repeat):
+            start = time()
+            model(inputs)
+            results.append(time() - start)
 
     return np.array(results)
 
 
 if __name__ == '__main__':
-    model = load_res18_trt()
-    results = bench(model, 20)
-    print(results[2:].mean())
+    # model = load_res18_trt()
+    # results = bench(model, 20)
+    # print(results[2:].mean())
 
     # model = load_mobilev3_trt()
     # results = bench(model, 20)
@@ -92,9 +93,9 @@ if __name__ == '__main__':
     results = bench(model, 20)
     print(results[2:].mean())
 
-    model = load_res18_pth()
-    results = bench(model, 20)
-    print(results[2:].mean())
+    # model = load_res18_pth()
+    # results = bench(model, 20)
+    # print(results[2:].mean())
 
     # model = load_mobilev3_pth()
     # results = bench(model, 20)
