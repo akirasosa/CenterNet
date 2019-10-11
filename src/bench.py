@@ -81,9 +81,9 @@ def bench(model, n_repeat=10):
 
 
 if __name__ == '__main__':
-    # model = load_res18_trt()
-    # results = bench(model, 20)
-    # print(results[2:].mean())
+    model = load_res18_trt()
+    results = bench(model, 20)
+    print(results[2:].mean())
 
     # model = load_mobilev3_trt()
     # results = bench(model, 20)
