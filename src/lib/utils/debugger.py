@@ -250,7 +250,7 @@ class Debugger(object):
         for i, v in self.imgs.items():
             # cv2.imwrite(path + '/{}{}.png'.format(prefix, i), v)
             # cv2.imwrite(f'/home/akirasosa/tmp/{prefix}{i}-{time.time()}.png', v)
-            cv2.imwrite(Path.home() / 'tmp' / f'{prefix}{i}-{time.time()}.png', v)
+            cv2.imwrite(str(Path.home() / 'tmp' / f'{prefix}{i}-{time.time()}.png'), v)
 
     def remove_side(self, img_id, img):
         if not (img_id in self.imgs):
