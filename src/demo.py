@@ -54,6 +54,9 @@ def demo(opt):
 
 
 if __name__ == '__main__':
+    # noinspection PyUnresolvedReferences
+    import _init_paths
+
     opt = opts().init()
     # import pickle
     # with open('../data/opt.pkl', 'wb') as f:
