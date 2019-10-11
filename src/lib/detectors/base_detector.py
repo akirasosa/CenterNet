@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import time
 
 import cv2
 import numpy as np
 import torch
+from torch2trt import TRTModule
 
 from models.model import create_model, load_model
 from utils.debugger import Debugger
@@ -21,9 +18,13 @@ class BaseDetector(object):
             opt.device = torch.device('cpu')
 
         print('Creating model...')
-        self.model = create_model(opt.arch, opt.heads, opt.head_conv)
-        self.model = load_model(self.model, opt.load_model)
-        self.model = self.model.to(opt.device)
+        # self.model = create_model(opt.arch, opt.heads, opt.head_conv)
+        # self.model = load_model(self.model, opt.load_model)
+        # self.model = self.model.to(opt.device)
+
+        model = TRTModule()
+        self.model = model.load_state_dict(torch.load(opt.load_model))
+
         self.model.eval()
 
         self.mean = np.array(opt.mean, dtype=np.float32).reshape(1, 1, 3)

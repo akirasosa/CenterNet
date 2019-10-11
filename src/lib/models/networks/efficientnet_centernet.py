@@ -154,17 +154,11 @@ class PoseEfficientNet(nn.Module):
         # for head in self.heads:
         #     print(head, self.__getattr__(head)(x).shape)
 
-        # TensorRT does not support dict output
+        # TensorRT does not support dict output, so output list here.
         return [
             self.__getattr__(head)(x)
             for head in self.heads
         ]
-        # ret = {}
-        # for head in self.heads:
-        #     ret[head] = self.__getattr__(head)(x)
-        # print([ret])
-        # return [ret]
-        # return [(ret['hm'], ret['wh'])]
 
     def init_weights(self, num_layers, pretrained=True):
         if pretrained:
