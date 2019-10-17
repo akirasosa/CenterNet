@@ -5,7 +5,7 @@ from __future__ import print_function
 import torch
 
 from .networks.msra_resnet import get_pose_net
-from .networks.mobilenet_dcn import get_pose_net as get_pose_mobile_net
+from .networks.mobilenet_centernet import get_pose_net as get_pose_mobile_net
 from .networks.efficientnet_centernet import get_pose_net as get_pose_efficient_net
 
 # from .networks.dlav0 import get_pose_net as get_dlav0

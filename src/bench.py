@@ -7,7 +7,7 @@ from torch2trt import TRTModule
 
 # noinspection PyUnresolvedReferences
 import _init_paths
-from models.networks import msra_resnet, mobilenet_dcn, efficientnet_centernet
+from models.networks import msra_resnet, mobilenet_centernet, efficientnet_centernet
 
 
 def load_res18_trt(is_half=False):
@@ -24,9 +24,9 @@ def load_res18_trt(is_half=False):
 
 def load_mobilev3_trt(is_half=False):
     if is_half:
-        dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt_half.pth'
+        dict_path = Path.home() / 'tmp' / 'mobilenet_centernet_trt_half.pth'
     else:
-        dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_trt.pth'
+        dict_path = Path.home() / 'tmp' / 'mobilenet_centernet_trt.pth'
 
     model = TRTModule()
     model.load_state_dict(torch.load(dict_path))
@@ -57,7 +57,7 @@ def load_mobilev3_pth():
     dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_torch.pth'
     heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
 
-    model = mobilenet_dcn.get_pose_net(0, heads, 64)
+    model = mobilenet_centernet.get_pose_net(0, heads, 64)
     model.load_state_dict(torch.load(dict_path))
     model = model.eval().cuda()
     return model
@@ -92,13 +92,13 @@ if __name__ == '__main__':
     # results = bench(model, 40)
     # print('res18_trt_half', results[2:].mean())
 
-    model = load_mobilev3_trt(is_half=True)
-    results = bench(model, 40)
-    print('mobilev3_trt_half', results[2:].mean())
+    # model = load_mobilev3_trt(is_half=True)
+    # results = bench(model, 40)
+    # print('mobilev3_trt_half', results[2:].mean())
 
-    model = load_res18_trt()
-    results = bench(model, 40)
-    print('res18_trt', results[2:].mean())
+    # model = load_res18_trt()
+    # results = bench(model, 40)
+    # print('res18_trt', results[2:].mean())
 
     model = load_mobilev3_trt()
     results = bench(model, 40)
@@ -107,16 +107,16 @@ if __name__ == '__main__':
     # model = load_efficient_trt()
     # results = bench(model, 20)
     # print(results[2:].mean())
-    print('efficient_trt', '---')
+    # print('efficient_trt', '---')
 
-    model = load_res18_pth()
-    results = bench(model, 40)
-    print('res18_pth', results[2:].mean())
+    # model = load_res18_pth()
+    # results = bench(model, 40)
+    # print('res18_pth', results[2:].mean())
 
-    model = load_mobilev3_pth()
-    results = bench(model, 40)
-    print('mobilev3_pth', results[2:].mean())
+    # model = load_mobilev3_pth()
+    # results = bench(model, 40)
+    # print('mobilev3_pth', results[2:].mean())
 
-    model = load_efficient_pth()
-    results = bench(model, 20)
-    print('efficient_pth', results[2:].mean())
+    # model = load_efficient_pth()
+    # results = bench(model, 20)
+    # print('efficient_pth', results[2:].mean())

@@ -275,6 +275,7 @@ class PoseMobileNet(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.conv(x)
+        print(x.shape)
 
         x = self.deconv_layers(x)
 
@@ -325,5 +326,5 @@ if __name__ == '__main__':
     heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
     net = get_pose_net(0, heads).to('cuda')
     out = net(torch.randn((2, 3, 512, 512)).to('cuda'))
-    for o in out:
-        print(o.shape)
+    # for o in out:
+    #     print(o.shape)
