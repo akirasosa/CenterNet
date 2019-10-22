@@ -7,7 +7,7 @@ from torch2trt import TRTModule
 
 # noinspection PyUnresolvedReferences
 import _init_paths
-from models.networks import msra_resnet, mobilenet_centernet, efficientnet_centernet
+from models.networks import msra_resnet, mobilenetv3_centernet, efficientnet_centernet
 
 
 def load_res18_trt(is_half=False):
@@ -57,7 +57,7 @@ def load_mobilev3_pth():
     dict_path = Path.home() / 'tmp' / 'mobilenet_dcn_no-head_torch.pth'
     heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
 
-    model = mobilenet_centernet.get_pose_net(0, heads, 64)
+    model = mobilenetv3_centernet.get_pose_net(0, heads, 64)
     model.load_state_dict(torch.load(dict_path))
     model = model.eval().cuda()
     return model
@@ -73,8 +73,8 @@ def load_efficient_pth():
     return model
 
 
-def bench(model, n_repeat=10):
-    inputs = torch.ones((1, 3, 512, 512)).cuda()
+def bench(model, n_repeat=100, shape=(1, 3, 512, 512)):
+    inputs = torch.ones(shape).cuda()
     results = []
 
     with torch.no_grad():

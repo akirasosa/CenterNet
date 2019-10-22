@@ -21,8 +21,8 @@ img.shape
 # %%
 @dataclass
 class Option:
-    # load_model: str = '/home/akirasosa/tmp/res18_no-head_trt.pth'
-    load_model: str = Path.home() / 'tmp' / 'res18_no-head_trt.pth'
+    # load_model: str = Path.home() / 'tmp' / 'res18_no-head_trt.pth'
+    load_model: str = '/tmp'
     fix_res: bool = True
     input_h: int = 512
     input_w: int = 512
@@ -40,6 +40,10 @@ class Option:
     debug: int = 1
     debugger_theme: str = 'white'
 
+    arch: str = 'mobilev2'
+
+    heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
+    head_conv = 64
     gpus = [0]
     mean = [0.408, 0.447, 0.47]
     std = [0.289, 0.274, 0.278]
