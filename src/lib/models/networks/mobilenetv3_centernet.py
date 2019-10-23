@@ -279,10 +279,10 @@ class PoseMobileNet(nn.Module):
 
         x = self.deconv_layers(x)
 
-        return tuple([
+        return [
             self.__getattr__(head)(x)
             for head in self.heads
-        ])
+        ]
         # ret = {}
         # for head in self.heads:
         #     ret[head] = self.__getattr__(head)(x)
