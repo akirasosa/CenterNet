@@ -186,10 +186,10 @@ class PoseMobileNetV2(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.deconv_layers(x)
-        return tuple([
+        return [
             self.__getattr__(head)(x)
             for head in self.heads
-        ])
+        ]
 
     def init_weights(self):
         if 1:

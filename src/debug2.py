@@ -1,24 +1,90 @@
 import time
+from dataclasses import dataclass
+from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
+import torch.nn as nn
 
-try:
-    from external.nms import soft_nms_39
-except:
-    print('NMS not imported! If you need it,'
-          ' do \n cd $CenterNet_ROOT/src/lib/external \n make')
+# noinspection PyUnresolvedReferences
+import _init_paths
+from demo import time_stats
+from detectors.base_detector import BaseDetector
 from models.decode import multi_pose_decode
-from models.utils import flip_tensor, flip_lr_off, flip_lr
 from utils.post_process import multi_pose_post_process
 
-from .base_detector import BaseDetector
+# from detectors.multi_pose import MultiPoseDetector
+
+# %%
+img = cv2.imread('/home/akirasosa/.ghq/github.com/akirasosa/CenterNet/images/16004479832_a748d55f21_k.jpg')
+# img = cv2.imread('../images/16004479832_a748d55f21_k.jpg')
+img.shape
+
+
+# %%
+@dataclass
+class Option:
+    # load_model: str = Path.home() / 'tmp' / 'res18_no-head_trt.pth'
+    load_model: str = Path.home() / 'data' / 'model_best.pth'
+    fix_res: bool = True
+    input_h: int = 512
+    input_w: int = 512
+    flip_test: bool = False
+    down_ratio: int = 4
+    num_classes: int = 1
+    hm_hp: bool = True
+    reg_offset: bool = True
+    reg_hp_offset: bool = True
+    mse_loss: bool = False
+    K: int = 100
+    nms: bool = False
+    vis_thresh: float = 0.3
+    dataset: str = 'coco_hp'
+    debug: int = 1
+    debugger_theme: str = 'white'
+
+    arch: str = 'mobilev2'
+
+    heads = {'hm': 1, 'wh': 2, 'hps': 34, 'reg': 2, 'hm_hp': 17, 'hp_offset': 2}
+    head_conv = 64
+    gpus = [0]
+    mean = [0.408, 0.447, 0.47]
+    std = [0.289, 0.274, 0.278]
+    test_scales = [1.0]
+    flip_idx = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16]]
+
+
+class PostProcess(nn.Module):
+    def forward(self, x):
+        output = {
+            'hm': x[0].sigmoid_(),
+            'wh': x[1],
+            'hps': x[2],
+            'reg': x[3],
+            'hm_hp': x[4].sigmoid_(),
+            'hp_offset': x[5],
+        }
+        return list(output.values())
+
+
+class Net(nn.Module):
+    def __init__(self, pose_net):
+        super().__init__()
+        self.pose_net = pose_net
+        self.post_process = PostProcess()
+
+    def forward(self, x):
+        x = self.pose_net(x)
+        x = self.post_process(x)
+        return x
 
 
 class MultiPoseDetector(BaseDetector):
     def __init__(self, opt):
         super(MultiPoseDetector, self).__init__(opt)
-        self.flip_idx = opt.flip_idx
+        self.model = Net(self.model)
+        self.model.eval().cuda()
 
     def process(self, images, return_time=False):
         with torch.no_grad():
@@ -34,26 +100,14 @@ class MultiPoseDetector(BaseDetector):
                 'hm_hp': output_tmp[4],
                 'hp_offset': output_tmp[5],
             }
-            print(output_tmp[0].reshape(-1)[:8])
 
-            output['hm'] = output['hm'].sigmoid_()
-            if self.opt.hm_hp and not self.opt.mse_loss:
-                output['hm_hp'] = output['hm_hp'].sigmoid_()
-
-            reg = output['reg'] if self.opt.reg_offset else None
-            hm_hp = output['hm_hp'] if self.opt.hm_hp else None
-            hp_offset = output['hp_offset'] if self.opt.reg_hp_offset else None
+            # output['hm'] = output['hm'].sigmoid_()
+            # output['hm_hp'] = output['hm_hp'].sigmoid_()
+            reg = output['reg']
+            hm_hp = output['hm_hp']
+            hp_offset = output['hp_offset']
             torch.cuda.synchronize()
             forward_time = time.time()
-
-            if self.opt.flip_test:
-                output['hm'] = (output['hm'][0:1] + flip_tensor(output['hm'][1:2])) / 2
-                output['wh'] = (output['wh'][0:1] + flip_tensor(output['wh'][1:2])) / 2
-                output['hps'] = (output['hps'][0:1] + flip_lr_off(output['hps'][1:2], self.flip_idx)) / 2
-                hm_hp = (hm_hp[0:1] + flip_lr(hm_hp[1:2], self.flip_idx)) / 2 \
-                    if hm_hp is not None else None
-                reg = reg[0:1] if reg is not None else None
-                hp_offset = hp_offset[0:1] if hp_offset is not None else None
 
             dets = multi_pose_decode(
                 output['hm'], output['wh'], output['hps'],
@@ -80,8 +134,6 @@ class MultiPoseDetector(BaseDetector):
         results = {}
         results[1] = np.concatenate(
             [detection[1] for detection in detections], axis=0).astype(np.float32)
-        if self.opt.nms or len(self.opt.test_scales) > 1:
-            soft_nms_39(results[1], Nt=0.5, method=2)
         results[1] = results[1].tolist()
         return results
 
@@ -107,3 +159,33 @@ class MultiPoseDetector(BaseDetector):
                 debugger.add_coco_hp(bbox[5:39], img_id='multi_pose')
         # debugger.show_all_imgs(pause=self.pause)
         debugger.save_all_imgs()
+
+
+# %%
+opt = Option()
+det = MultiPoseDetector(opt)
+
+# %%
+images, _ = det.pre_process(img, scale=1)
+
+# %%
+det.process(images.cuda())
+pass
+
+# %%
+ret = det.run(img)
+time_str = ''
+for stat in time_stats:
+    time_str = time_str + '{} {:.3f}s |'.format(stat, ret[stat])
+print(time_str)
+
+# %%
+# times = []
+#
+# for _ in range(100):
+#     t0 = time.time()
+#     det.pre_process(img, 1)
+#     times.append(time.time() - t0)
+#
+# # %%
+# np.mean(times[:5]), np.std(times[:5])
