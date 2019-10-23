@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -11,8 +10,6 @@ import torch.nn as nn
 import _init_paths
 from demo import time_stats
 from detectors.base_detector import BaseDetector
-from models.decode import _nms, _topk_channel
-from models.utils import _tranpose_and_gather_feat, _gather_feat
 from utils.post_process import multi_pose_post_process
 
 # from detectors.multi_pose import MultiPoseDetector
@@ -56,8 +53,30 @@ class Option:
     flip_idx = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16]]
 
 
+def _nms(heat, kernel=3):
+    pad = (kernel - 1) // 2
+
+    hmax = nn.functional.max_pool2d(heat, (kernel, kernel), stride=1, padding=pad)
+    keep = (hmax == heat).float()
+    return heat * keep
+
+
+def _gather_feat(feat, ind):
+    dim = feat.size(2)
+    ind = ind.unsqueeze(2).expand(ind.size(0), ind.size(1), dim)
+    feat = feat.gather(1, ind)
+    return feat
+
+
+def _tranpose_and_gather_feat(feat, ind):
+    feat = feat.permute(0, 2, 3, 1).contiguous()
+    feat = feat.view(feat.size(0), -1, feat.size(3))
+    feat = _gather_feat(feat, ind)
+    return feat
+
+
 class PostProcess(nn.Module):
-    def __init__(self, batch=1, height=128, width=128, hm=1, wh=2, hps=34, reg=2, hm_hp=17, hp_offset=2):
+    def __init__(self, batch=1, height=128, width=128, hm=1, wh=2, hps=34, reg=2, hm_hp=17, hp_offset=2, K=100):
         super().__init__()
         self.batch = batch
         self.height = height
@@ -68,6 +87,7 @@ class PostProcess(nn.Module):
         self.reg = reg
         self.hm_hp = hm_hp
         self.hp_offset = hp_offset
+        self.K = K
 
     def _topk(self, scores, K=40):
         batch, cat, height, width = self.batch, self.hm, self.height, self.width
@@ -85,6 +105,17 @@ class PostProcess(nn.Module):
         topk_xs = _gather_feat(topk_xs.view(batch, -1, 1), topk_ind).view(batch, K)
 
         return topk_score, topk_inds, topk_clses, topk_ys, topk_xs
+
+    def _topk_channel(self, scores, K=40):
+        batch, cat, height, width = self.batch, self.hm_hp, self.height, self.height
+
+        topk_scores, topk_inds = torch.topk(scores.view(batch, cat, -1), K)
+
+        topk_inds = topk_inds % (height * width)
+        topk_ys = (topk_inds / width).int().float()
+        topk_xs = (topk_inds % width).int().float()
+
+        return topk_scores, topk_inds, topk_ys, topk_xs
 
     def decode(self, heat, wh, kps, reg, hm_hp, hp_offset, K=100):
         batch, cat, height, width = self.batch, self.hm, self.height, self.width
@@ -114,7 +145,7 @@ class PostProcess(nn.Module):
         kps = kps.view(batch, K, num_joints, 2).permute(
             0, 2, 1, 3).contiguous()  # b x J x K x 2
         reg_kps = kps.unsqueeze(3).expand(batch, num_joints, K, K, 2)
-        hm_score, hm_inds, hm_ys, hm_xs = _topk_channel(hm_hp, K=K)  # b x J x K
+        hm_score, hm_inds, hm_ys, hm_xs = self._topk_channel(hm_hp, K=K)  # b x J x K
         if hp_offset is not None:
             hp_offset = _tranpose_and_gather_feat(
                 hp_offset, hm_inds.view(batch, -1))
@@ -163,11 +194,8 @@ class PostProcess(nn.Module):
             'hm_hp': x[4].sigmoid_(),
             'hp_offset': x[5],
         }
-        for v in x.values():
-            print(v.shape)
         # return list(output.values())
         detections = self.decode(x['hm'], x['wh'], x['hps'], x['reg'], x['hm_hp'], x['hp_offset'])
-        print(detections.shape)
         return list(x.values()), detections
 
 
