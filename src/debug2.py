@@ -118,7 +118,7 @@ class PostProcess(nn.Module):
 
     def decode(self, heat, wh, kps, reg, hm_hp, hp_offset, K=100):
         batch, cat, height, width = self.batch, self.hm, self.height, self.width
-        num_joints = kps.shape[1] // 2
+        num_joints = self.hps // 2
         heat = _nms(heat)
         scores, inds, clses, ys, xs = self._topk(heat)
 
@@ -183,17 +183,6 @@ class PostProcess(nn.Module):
         return detections
 
     def forward(self, x):
-        # x = {
-        #     'hm': x[0].sigmoid_(),
-        #     'wh': x[1],
-        #     'hps': x[2],
-        #     'reg': x[3],
-        #     'hm_hp': x[4].sigmoid_(),
-        #     'hp_offset': x[5],
-        # }
-        # # return list(output.values())
-        # detections = self.decode(x['hm'], x['wh'], x['hps'], x['reg'], x['hm_hp'], x['hp_offset'])
-        # return list(x.values()), detections
         x[0] = x[0].sigmoid_()  # hm
         x[4] = x[4].sigmoid_()  # hm_hp
         detections = self.decode(*x)

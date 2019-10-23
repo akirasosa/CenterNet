@@ -9,7 +9,7 @@ from torch2trt import torch2trt
 # noinspection PyUnresolvedReferences
 import _init_paths
 from bench import bench
-from debug2 import PostProcess
+# from debug2 import PostProcess
 from models.model import load_model
 from models.networks import mobilenetv2_centernet
 
