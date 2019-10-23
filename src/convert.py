@@ -9,6 +9,7 @@ from torch2trt import torch2trt
 # noinspection PyUnresolvedReferences
 import _init_paths
 from bench import bench
+from debug2 import PostProcess
 from models.model import load_model
 from models.networks import mobilenetv2_centernet
 
@@ -31,7 +32,7 @@ class PreProcess(nn.Module):
         return x
 
 
-class Net(nn.Module):
+class FullNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.pre_process = PreProcess()
@@ -42,24 +43,29 @@ class Net(nn.Module):
         self.pose_net = pose_net
 
         # self.pose_net = mobilenetv3_centernet.get_pose_net(0, heads, head_conv=64)
+        # self.post_process = PostProcess()
 
     def forward(self, x):
         x = self.pre_process(x)
         x = self.pose_net(x)
+        # x = self.post_process(x)
 
         return x
 
 
 # %%
-net = Net().eval().cuda()
+net = FullNet().eval().cuda()
 x = torch.ones((1, 512, 512, 3)).cuda()
+out = net(x)
+print(len(out))
 # net_trt = torch2trt(net, [x], max_workspace_size=1 << 25)
 
 # %%
+# torch.onnx.export(net, x, Path.home() / 'tmp' / 'mobilenetv2_centernet_prepro_postpro_trained.onnx',
 torch.onnx.export(net, x, Path.home() / 'tmp' / 'mobilenetv2_centernet_prepro_trained.onnx',
                   # verbose=True,
                   input_names=['input0'],
-                  output_names=[f'output{n}' for n in range(6)],
+                  output_names=[f'output{n}' for n in range(len(out))],
                   )
 # torch.save(net.state_dict(), Path.home() / 'tmp' / 'mobilenet_dcn_no-head_torch.pth')
 # torch.save(net_trt.state_dict(), Path.home() / 'tmp' / 'mobilenetv2_centernet_prepro_trt.pth')

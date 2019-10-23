@@ -183,17 +183,21 @@ class PostProcess(nn.Module):
         return detections
 
     def forward(self, x):
-        x = {
-            'hm': x[0].sigmoid_(),
-            'wh': x[1],
-            'hps': x[2],
-            'reg': x[3],
-            'hm_hp': x[4].sigmoid_(),
-            'hp_offset': x[5],
-        }
-        # return list(output.values())
-        detections = self.decode(x['hm'], x['wh'], x['hps'], x['reg'], x['hm_hp'], x['hp_offset'])
-        return list(x.values()), detections
+        # x = {
+        #     'hm': x[0].sigmoid_(),
+        #     'wh': x[1],
+        #     'hps': x[2],
+        #     'reg': x[3],
+        #     'hm_hp': x[4].sigmoid_(),
+        #     'hp_offset': x[5],
+        # }
+        # # return list(output.values())
+        # detections = self.decode(x['hm'], x['wh'], x['hps'], x['reg'], x['hm_hp'], x['hp_offset'])
+        # return list(x.values()), detections
+        x[0] = x[0].sigmoid_()  # hm
+        x[4] = x[4].sigmoid_()  # hm_hp
+        detections = self.decode(*x)
+        return x + [detections]
 
 
 class Net(nn.Module):
@@ -218,7 +222,7 @@ class MultiPoseDetector(BaseDetector):
         with torch.no_grad():
             torch.cuda.synchronize()
 
-            output_tmp, dets = self.model(images)
+            output_tmp = self.model(images)
             output = {
                 'hm': output_tmp[0],
                 'wh': output_tmp[1],
@@ -227,6 +231,7 @@ class MultiPoseDetector(BaseDetector):
                 'hm_hp': output_tmp[4],
                 'hp_offset': output_tmp[5],
             }
+            dets = output_tmp[6]
 
         if return_time:
             return output, dets, 0
