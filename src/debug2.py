@@ -11,7 +11,8 @@ import torch.nn as nn
 import _init_paths
 from demo import time_stats
 from detectors.base_detector import BaseDetector
-from models.decode import multi_pose_decode
+from models.decode import multi_pose_decode, _nms, _topk, _topk_channel
+from models.utils import _tranpose_and_gather_feat
 from utils.post_process import multi_pose_post_process
 
 # from detectors.multi_pose import MultiPoseDetector
@@ -56,8 +57,76 @@ class Option:
 
 
 class PostProcess(nn.Module):
+    def decode(self, heat, wh, kps, reg, hm_hp, hp_offset, K=100):
+        batch, cat, height, width = heat.size()
+        num_joints = kps.shape[1] // 2
+        heat = _nms(heat)
+        scores, inds, clses, ys, xs = _topk(heat, K=K)
+
+        kps = _tranpose_and_gather_feat(kps, inds)
+        kps = kps.view(batch, K, num_joints * 2)
+        kps[..., ::2] += xs.view(batch, K, 1).expand(batch, K, num_joints)
+        kps[..., 1::2] += ys.view(batch, K, 1).expand(batch, K, num_joints)
+        reg = _tranpose_and_gather_feat(reg, inds)
+        reg = reg.view(batch, K, 2)
+        xs = xs.view(batch, K, 1) + reg[:, :, 0:1]
+        ys = ys.view(batch, K, 1) + reg[:, :, 1:2]
+        wh = _tranpose_and_gather_feat(wh, inds)
+        wh = wh.view(batch, K, 2)
+        clses = clses.view(batch, K, 1).float()
+        scores = scores.view(batch, K, 1)
+
+        bboxes = torch.cat([xs - wh[..., 0:1] / 2,
+                            ys - wh[..., 1:2] / 2,
+                            xs + wh[..., 0:1] / 2,
+                            ys + wh[..., 1:2] / 2], dim=2)
+        hm_hp = _nms(hm_hp)
+        thresh = 0.1
+        kps = kps.view(batch, K, num_joints, 2).permute(
+            0, 2, 1, 3).contiguous()  # b x J x K x 2
+        reg_kps = kps.unsqueeze(3).expand(batch, num_joints, K, K, 2)
+        hm_score, hm_inds, hm_ys, hm_xs = _topk_channel(hm_hp, K=K)  # b x J x K
+        if hp_offset is not None:
+            hp_offset = _tranpose_and_gather_feat(
+                hp_offset, hm_inds.view(batch, -1))
+            hp_offset = hp_offset.view(batch, num_joints, K, 2)
+            hm_xs = hm_xs + hp_offset[:, :, :, 0]
+            hm_ys = hm_ys + hp_offset[:, :, :, 1]
+        else:
+            hm_xs = hm_xs + 0.5
+            hm_ys = hm_ys + 0.5
+
+        mask = (hm_score > thresh).float()
+        hm_score = (1 - mask) * -1 + mask * hm_score
+        hm_ys = (1 - mask) * (-10000) + mask * hm_ys
+        hm_xs = (1 - mask) * (-10000) + mask * hm_xs
+        hm_kps = torch.stack([hm_xs, hm_ys], dim=-1).unsqueeze(
+            2).expand(batch, num_joints, K, K, 2)
+        dist = (((reg_kps - hm_kps) ** 2).sum(dim=4) ** 0.5)
+        min_dist, min_ind = dist.min(dim=3)  # b x J x K
+        hm_score = hm_score.gather(2, min_ind).unsqueeze(-1)  # b x J x K x 1
+        min_dist = min_dist.unsqueeze(-1)
+        min_ind = min_ind.view(batch, num_joints, K, 1, 1).expand(
+            batch, num_joints, K, 1, 2)
+        hm_kps = hm_kps.gather(3, min_ind)
+        hm_kps = hm_kps.view(batch, num_joints, K, 2)
+        l = bboxes[:, :, 0].view(batch, 1, K, 1).expand(batch, num_joints, K, 1)
+        t = bboxes[:, :, 1].view(batch, 1, K, 1).expand(batch, num_joints, K, 1)
+        r = bboxes[:, :, 2].view(batch, 1, K, 1).expand(batch, num_joints, K, 1)
+        b = bboxes[:, :, 3].view(batch, 1, K, 1).expand(batch, num_joints, K, 1)
+        mask = (hm_kps[..., 0:1] < l) + (hm_kps[..., 0:1] > r) + \
+               (hm_kps[..., 1:2] < t) + (hm_kps[..., 1:2] > b) + \
+               (hm_score < thresh) + (min_dist > (torch.max(b - t, r - l) * 0.3))
+        mask = (mask > 0).float().expand(batch, num_joints, K, 2)
+        kps = (1 - mask) * hm_kps + mask * kps
+        kps = kps.permute(0, 2, 1, 3).contiguous().view(
+            batch, K, num_joints * 2)
+        detections = torch.cat([bboxes, scores, kps, clses], dim=2)
+
+        return detections
+
     def forward(self, x):
-        output = {
+        x = {
             'hm': x[0].sigmoid_(),
             'wh': x[1],
             'hps': x[2],
@@ -65,7 +134,10 @@ class PostProcess(nn.Module):
             'hm_hp': x[4].sigmoid_(),
             'hp_offset': x[5],
         }
-        return list(output.values())
+        # return list(output.values())
+        detections = self.decode(x['hm'], x['wh'], x['hps'], x['reg'], x['hm_hp'], x['hp_offset'])
+        print(detections.shape)
+        return list(x.values()), detections
 
 
 class Net(nn.Module):
@@ -89,9 +161,8 @@ class MultiPoseDetector(BaseDetector):
     def process(self, images, return_time=False):
         with torch.no_grad():
             torch.cuda.synchronize()
-            # output = self.model(images)[-1]
 
-            output_tmp = self.model(images)
+            output_tmp, dets = self.model(images)
             output = {
                 'hm': output_tmp[0],
                 'wh': output_tmp[1],
@@ -101,20 +172,8 @@ class MultiPoseDetector(BaseDetector):
                 'hp_offset': output_tmp[5],
             }
 
-            # output['hm'] = output['hm'].sigmoid_()
-            # output['hm_hp'] = output['hm_hp'].sigmoid_()
-            reg = output['reg']
-            hm_hp = output['hm_hp']
-            hp_offset = output['hp_offset']
-            torch.cuda.synchronize()
-            forward_time = time.time()
-
-            dets = multi_pose_decode(
-                output['hm'], output['wh'], output['hps'],
-                reg=reg, hm_hp=hm_hp, hp_offset=hp_offset, K=self.opt.K)
-
         if return_time:
-            return output, dets, forward_time
+            return output, dets, 0
         else:
             return output, dets
 
