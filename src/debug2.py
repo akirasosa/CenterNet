@@ -55,30 +55,21 @@ class Option:
 
 def _nms(heat, kernel=3):
     pad = (kernel - 1) // 2
-
     hmax = nn.functional.max_pool2d(heat, (kernel, kernel), stride=1, padding=pad)
     keep = (hmax == heat).float()
     return heat * keep
 
 
-def _gather_feat(feat, ind):
-    dim = feat.size(2)
-    ind = ind.unsqueeze(2).expand(ind.size(0), ind.size(1), dim)
-    print(ind.size(0), ind.size(1), dim)
-    feat = feat.gather(1, ind)
-    return feat
-
-
-def _gather_feat2(feat, ind, shape):
+def _gather_feat(feat, ind, shape):
     ind = ind.unsqueeze(2).expand(*shape)
     feat = feat.gather(1, ind)
     return feat
 
 
-def _tranpose_and_gather_feat(feat, ind):
+def _tranpose_and_gather_feat(feat, ind, shape):
     feat = feat.permute(0, 2, 3, 1).contiguous()
-    feat = feat.view(feat.size(0), -1, feat.size(3))
-    feat = _gather_feat(feat, ind)
+    feat = feat.view(shape[0], -1, shape[2])
+    feat = _gather_feat(feat, ind, shape)
     return feat
 
 
@@ -108,9 +99,9 @@ class PostProcess(nn.Module):
         topk_score, topk_ind = torch.topk(topk_scores.view(batch, -1), K)
         topk_clses = (topk_ind / K).int()
         shape = (batch, K, 1)
-        topk_inds = _gather_feat2(topk_inds.view(batch, -1, 1), topk_ind, shape).view(batch, K)
-        topk_ys = _gather_feat2(topk_ys.view(batch, -1, 1), topk_ind, shape).view(batch, K)
-        topk_xs = _gather_feat2(topk_xs.view(batch, -1, 1), topk_ind, shape).view(batch, K)
+        topk_inds = _gather_feat(topk_inds.view(batch, -1, 1), topk_ind, shape).view(batch, K)
+        topk_ys = _gather_feat(topk_ys.view(batch, -1, 1), topk_ind, shape).view(batch, K)
+        topk_xs = _gather_feat(topk_xs.view(batch, -1, 1), topk_ind, shape).view(batch, K)
 
         return topk_score, topk_inds, topk_clses, topk_ys, topk_xs
 
@@ -131,15 +122,15 @@ class PostProcess(nn.Module):
         heat = _nms(heat)
         scores, inds, clses, ys, xs = self._topk(heat)
 
-        kps = _tranpose_and_gather_feat(kps, inds)
+        kps = _tranpose_and_gather_feat(kps, inds, (batch, K, self.hps))
         kps = kps.view(batch, K, num_joints * 2)
         kps[..., ::2] += xs.view(batch, K, 1).expand(batch, K, num_joints)
         kps[..., 1::2] += ys.view(batch, K, 1).expand(batch, K, num_joints)
-        reg = _tranpose_and_gather_feat(reg, inds)
+        reg = _tranpose_and_gather_feat(reg, inds, (batch, K, self.reg))
         reg = reg.view(batch, K, 2)
         xs = xs.view(batch, K, 1) + reg[:, :, 0:1]
         ys = ys.view(batch, K, 1) + reg[:, :, 1:2]
-        wh = _tranpose_and_gather_feat(wh, inds)
+        wh = _tranpose_and_gather_feat(wh, inds, (batch, K, self.wh))
         wh = wh.view(batch, K, 2)
         clses = clses.view(batch, K, 1).float()
         scores = scores.view(batch, K, 1)
@@ -154,7 +145,8 @@ class PostProcess(nn.Module):
             0, 2, 1, 3).contiguous()  # b x J x K x 2
         reg_kps = kps.unsqueeze(3).expand(batch, num_joints, K, K, 2)
         hm_score, hm_inds, hm_ys, hm_xs = self._topk_channel(hm_hp)  # b x J x K
-        hp_offset = _tranpose_and_gather_feat(hp_offset, hm_inds.view(batch, -1))
+        hp_offset = _tranpose_and_gather_feat(hp_offset, hm_inds.view(batch, -1),
+                                              (batch, K * self.hm_hp, self.hp_offset))
         hp_offset = hp_offset.view(batch, num_joints, K, 2)
         hm_xs = hm_xs + hp_offset[:, :, :, 0]
         hm_ys = hm_ys + hp_offset[:, :, :, 1]
